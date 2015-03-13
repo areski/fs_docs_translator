@@ -185,23 +185,11 @@ def translate(page_title):
         # no ol element
         pass
 
-    # import ipdb; ipdb.set_trace()
-    # soup.h1.replaceWith("")
     soup.h1.replaceWith("")
-    # soup.h1.replaceWith("<h1>" + soup.h1.text.replace("Variable_", "") + "</h1>")
     res = str(soup.body).replace("h2", "h1")
-    return res
-
-    children = soup.body.findChildren()
-    res = ""
-    for i in children:
-        res += str(i)
-
-    # soup.body
     return res
     # xhtml = fix_cdata_output(xhtml)
     # return xhtml
-
 
 if __name__ == '__main__':
     argvalue = sys.argv[1]

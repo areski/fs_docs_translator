@@ -14,6 +14,7 @@ from mwlib.dummydb import DummyDB
 from mwlib.uparser import parseString
 from mwlib.parser import show
 from mwlib.xhtmlwriter import MWXHTMLWriter, preprocess
+from BeautifulSoup import BeautifulSoup
 
 try:
     import xml.etree.ElementTree as ET
@@ -36,6 +37,7 @@ def CDATA(text=None):
 # Python 2.7 and 3
 if hasattr(ET, '_serialize_xml'):
     ET._original_serialize_xml = ET._serialize_xml
+
     def _serialize_xml(write, elem, *args):
         if elem.tag == '![CDATA[':
             write("\n<![CDATA[%s]]>\n" % (elem.text))
@@ -45,6 +47,7 @@ if hasattr(ET, '_serialize_xml'):
 # Python 2.5-2.6, and non-stdlib ElementTree
 elif hasattr(ET.ElementTree, '_write'):
     ET.ElementTree._orig_write = ET.ElementTree._write
+
     def _write(self, file, node, encoding, namespaces):
         if node.tag == '![CDATA[':
             file.write("\n<![CDATA[%s]]>\n" % node.text.encode(encoding))
@@ -94,13 +97,13 @@ class ConfluenceWriter(MWXHTMLWriter):
         def _r(obj, p=None):
             for c in obj:
                 assert c is not None
-                for k,v in c.items():
+                for k, v in c.items():
                     if v is None:
-                        print k,v
+                        # print k, v
                         assert v is not None
-                _r(c,obj)
+                _r(c, obj)
         _r(self.root)
-        #res = self.header + ET.tostring(self.getTree())
+        # res = self.header + ET.tostring(self.getTree())
         res = self.header + u''.join([x.decode('utf-8') for x in ET.tostringlist(self.root, "utf-8")])
         return res
 
@@ -175,10 +178,46 @@ def translate(page_title):
 
     raw = page.read()
     xhtml = write_confluence_XHTML(raw.decode('utf-8'), page_title)
-    xhtml = fix_cdata_output(xhtml)
-    return xhtml
+    soup = BeautifulSoup(xhtml)
+    try:
+        soup.ol.replaceWith("")
+    except AttributeError:
+        # no ol element
+        pass
+
+    # import ipdb; ipdb.set_trace()
+    # soup.h1.replaceWith("")
+    soup.h1.replaceWith("")
+    # soup.h1.replaceWith("<h1>" + soup.h1.text.replace("Variable_", "") + "</h1>")
+    res = str(soup.body).replace("h2", "h1")
+    return res
+
+    children = soup.body.findChildren()
+    res = ""
+    for i in children:
+        res += str(i)
+
+    # soup.body
+    return res
+    # xhtml = fix_cdata_output(xhtml)
+    # return xhtml
 
 
 if __name__ == '__main__':
-    title = sys.argv[1]
-    print translate(title)
+    argvalue = sys.argv[1]
+    if argvalue[-4:] == '.txt':
+        with open(argvalue, 'r') as f:
+            with open("output.txt", 'wr') as nf:
+                for line in f:
+                    contentline = line.strip()
+                    contentline = contentline.replace("https://wiki.freeswitch.org/wiki/", "")
+                    # print "Translate: %s" % contentline
+                    res = translate(contentline)
+
+                    nf.write(res)
+                    nf.write('\n')
+                    nf.write('\n')
+            nf.close()
+        f.closed
+    else:
+        print translate(argvalue)
